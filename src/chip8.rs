@@ -13,6 +13,7 @@ impl Chip8 {
 
         pub fn load_rom(&mut self, data: &Vec<u8>) {
                 let offset = 0x200;
+
                 /* load current byte index, and the value */
                 for i in 0..data.len() {
                         self.ram.write_byte((offset + i) as u16, data[i]);

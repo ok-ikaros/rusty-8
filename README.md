@@ -7,6 +7,12 @@ First start by opening the file. Using read to end because it reads 8 bits at a 
 struct has:
 memory: array of 8 bit integers. 4096 bytes because every byte is 8 bits.
 
+Addresses are 16 bits. When we use addresses, we store them as such 
+
+Now that memory should be in the same module as the chip8.  Will fix this later.
+
+The memory from 0 to 512 holds the sprites, which is an array of 16 elements. Each element is an array of 5 bytes, representing hexadecimal digits from 0 - F.
+
 https://stackoverflow.com/questions/40760168/how-to-handle-errors-from-the-readread-to-end-method
 
 
