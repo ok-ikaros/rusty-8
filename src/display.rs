@@ -1,7 +1,7 @@
 use ram::Ram;
 
 const WIDTH: usize = 64;
-const HEIGHT: usize = 32;
+const HEIGHT: usize = 64;
 
 pub struct Display {
         screen: [[u8; WIDTH]; HEIGHT] 
@@ -20,6 +20,7 @@ impl Display {
                 println!("drawing sprite at ({}, {})", x, y);
                 for y in 0..height {
                         let mut byte = ram.read_byte(i_reg + y as u16);
+
                         let mut x_coord = x as usize;
                         let y_coord = y as usize;
                         

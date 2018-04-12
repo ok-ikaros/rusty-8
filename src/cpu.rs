@@ -135,10 +135,24 @@ impl Cpu {
                                         },
                                         4 => {
                                                 /* vx = vx += vy */
-                                                self.v[x as usize] = vx + vy;
+                                        
+                                                let sum: u16 = vx as u16 + vy as u16;
+                                                self.v[x as usize] = sum as u8;
+                                                if sum > 0xFF {
+                                                        self.v[0xF] = 1;
+                                                }
+                                                else {
+                                                        self.v[0xF] = 0;
+                                                }
                                         },
                                         5 => {
+                                                
                                                 /* vx = vx -= vy */
+                                                if vx > vy {
+                                                        self.v[0xF] = 1;
+                                                } else {
+                                                        self.v[0xF] = 0;
+                                                }
                                                 self.v[x as usize] = vx - vy;
                                         },
 

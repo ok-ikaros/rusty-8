@@ -39,6 +39,8 @@ impl Ram {
         }
 
         pub fn read_byte(&mut self, address: u16) -> u8 {
+                       
+                       
                 self.mem[address as usize]
         }
 }
