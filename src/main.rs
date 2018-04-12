@@ -5,6 +5,8 @@ use chip8::Chip8;
 mod ram;
 mod chip8;
 mod cpu;
+mod display;
+mod keypad;
 
 fn main() {
         let mut file = File::open("roms/INVADERS").unwrap();
@@ -15,7 +17,7 @@ fn main() {
         chip8.load_rom(&data);
 
         loop {
-                chip8.run_instruction();
+                chip8.execute_opcode();
         }
 
 }
