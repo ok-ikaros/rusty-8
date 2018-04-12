@@ -13,6 +13,10 @@ Now that memory should be in the same module as the chip8.  Will fix this later.
 
 The memory from 0 to 512 holds the sprites, which is an array of 16 elements. Each element is an array of 5 bytes, representing hexadecimal digits from 0 - F.
 
+Use array splicing if you want to use i in array indexing.
+
+Chip-8 instructions are stored big-endian
+
 https://stackoverflow.com/questions/40760168/how-to-handle-errors-from-the-readread-to-end-method
 
 
