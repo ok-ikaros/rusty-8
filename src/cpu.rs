@@ -165,7 +165,8 @@ impl Cpu {
                                                  * of VY before the shift */
                                                  
                                                 self.v[0xF] = vx & 0x1;
-                                                self.v[0xF] >>= 1;
+                                                self.v[x as usize] >>= 1;
+
                                         },
 
 
