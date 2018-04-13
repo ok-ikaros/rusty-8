@@ -12,7 +12,7 @@ pub struct Cpu {
         pc: u16,
         /* stores memory addresses - usually only 12 leftmost bits used */
         i: u16,
-        stack: Vec<u16>, // TODO CHANGE TO VECTOR
+        stack: Vec<u16>,
         /* stack pointer */
         sp: usize,
         prev_pc: u16,
@@ -45,7 +45,7 @@ impl Cpu {
                  */
                 let opcode: u16 = (first_byte << 8) | second_byte;
                 println!("opcode: {:#X}: hi:{:#X} lo:{:#X}", opcode, first_byte, second_byte);
-                let nnn = opcode & 0x0FFF;
+                let nnn = (opcode & 0x0FFF) as u16;
                 let nn = (opcode & 0x0FF) as u8;
 
                 /* n is also called nibble for some reason */
@@ -70,11 +70,10 @@ impl Cpu {
                                                 /* return from subroutine */
                                                 // self.sp -= 1;
                                                 // self.pc = self.stack[self.sp];
-                                                let addr = self.stack.pop().unwrap();
-                                                self.pc = addr;
-
-                                                
+                                                self.pc = self.stack.pop()
+                                                    
                                         },
+
                                         _ => {
                                                 panic!("Unimplemented opcode {:#X}:{:#X}", self.pc, opcode)
 
@@ -89,11 +88,10 @@ impl Cpu {
                         },
                         0x2 => {
                                 /* calls subroutine at nnn */
-                                // self.stack[self.sp] = self.pc + 2;
-                                // self.sp += 1;
+                                self.stack[self.sp] = self.pc + 2;
+                                self.sp += 1;
+                                // self.stack.push(self.pc + 2);
                                 // self.pc = nnn;
-                                self.stack.push(self.pc + 2);
-                                self.pc = nnn;
                         }
                         0x3 => {
                                 /* if vx == nn */
@@ -113,66 +111,86 @@ impl Cpu {
                         0x7 => {
                                 /* vx += nn */
                                 let vx = self.v[x as usize];
-                                self.v[x as usize] = vx.wrapping_add(nn);
+                                self.v[x as usize] += vx.wrapping_add(nn);
                                 self.pc += 2;
                         },
-                        0x8 => {
-                                let vx = self.v[x as usize];
-                                let vy = self.v[y as usize];
-                                match n {
-                                        0 => {
-                                                /* vx = vy */
-                                                self.v[x as usize] = self.v[y as usize];
+                        // 0x8 => {
+                        //         // let vx = self.v[x as usize];
+                        //         // let vy = self.v[y as usize];
+                        //         match n {
+                        //                 0 => {
+                        //                         /* vx = vy */
+                        //                         self.v[x as usize] = self.v[y as usize];
+                        //                         self.pc += 2;
 
-                                        },
-                                        2 => {
-                                                /* vx = vx & vy */
-                                                self.v[x as usize] = vx & vy;
+                        //                 },
+                                        // 2 => {
+                                        //         /* vx = vx & vy */
+                                        //         self.v[x as usize] = vx & vy;
 
-                                        },
-                                        3 => {
-                                                /* vx = vx ^ vy */
-                                                self.v[x as usize] = vx ^ vy;
-                                                self.pc += 2;
+                                        // },
+                                        // 3 => {
+                                        //         /* vx = vx ^ vy */
+                                        //         self.v[x as usize] = vx ^ vy;
 
-                                        },
-                                        4 => {
-                                                /* vx = vx += vy */
-                                        
-                                                let sum: u16 = vx as u16 + vy as u16;
-                                                self.v[x as usize] = sum as u8;
-                                                if sum > 0xFF {
-                                                        self.v[0xF] = 1;
-                                                }
-                                                // else {
-                                                //         self.v[0xF] = 0;
-                                                // }
-                                        },
-                                        5 => {
-                                                
-                                                /* vx = vx -= vy */
-                                                if vx > vy {
-                                                        self.v[0xF] = 1;
-                                                } else {
-                                                        self.v[0xF] = 0;
-                                                }
-                                                self.v[x as usize] = vx - vy;
-                                        },
-                                        6 => {
+                                        // },
+                                        // 4 => {
+                                        //         /* vx = vx += vy */
+                                        //         let sum: u16 = vx as u16 + vy as u16;
+                                        //         self.v[x as usize] = sum as u8;
+                                        //         if sum > 0xFF {
+                                        //                 self.v[0xF] = 1;
+                                        //         }
+                                        //         else {
+                                        //                 self.v[0xF] = 0;
+                                        //         }
+                                        // },
+                                        // 5 => {
+                                        //         /* vx = vx -= vy */
+                                        //         if vx > vy {
+                                        //                 self.v[0xF] = 1;
+                                        //         } else {
+                                        //                 self.v[0xF] = 0;
+                                        //         }
+                                        //         self.v[x as usize] = vx - vy;
+                                        // },
+                                        // 6 => {
                                                  
-                                                 /* Shifts VY right by one and copies the result to VX. 
-                                                 * VF is set to the value of the least significant bit 
-                                                 * of VY before the shift */
+                                        //          * Shifts VY right by one and copies the result to VX. 
+                                        //          * VF is set to the value of the least significant bit 
+                                        //          * of VY before the shift
                                                  
-                                                self.v[0xF] = vx & 0x1;
-                                                self.v[0xF] >>= 1;
-                                        },
+                                        //         self.v[0xF] = vx & 0x1;
+                                        //         self.v[0xF] >>= 1;
+                                        // },
+                                        // 7 => {
+                                        //         /* 
+                                        //          * Sets VX to VY minus VX. VF is set to 0 when there's 
+                                        //          * /a borrow, and 1 when there isn't.
+                                        //          */
+                                        //         if vy > vx {
+                                        //                 self.v[0xF] = 1;
+                                        //         } else {
+                                        //                 self.v[0xF] = 0;
+                                        //         }
+                                        //         self.v[x as usize] = vy - vx;
 
+                                        // },
+                                        // 0xE => {
+                                        //         /* 
+                                        //          * Shifts VY left by one and copies the result to VX. 
+                                        //          * VF is set to the value of the most significant bit 
+                                        //          * of VY before the shift.
+                                        //          */ 
+                                        //         self.v[0xF] = self.v[x as usize] >> 7;
+                                        //         self.v[x as usize] <<= 1;
+                                        // }
 
-                                        _ => panic!("Unimplemented opcode {:#X}:{:#X}", self.pc, opcode)
-                                };
-                                self.pc += 2;
-                        },
+                        //                 _ => panic!("Unimplemented opcode {:#X}:{:#X}", self.pc, opcode)
+
+                        //         };
+
+                        // },
                         0xD => {
                                 /* draw sprite */
                                 self.display.test_draw(self.i, ram, x, y, n, &mut self.v[0xF]);
@@ -202,11 +220,9 @@ impl Cpu {
                                 self.pc += 2;
                         },
                         0xF => {
-                                let vx = self.v[x as usize];
-                                self.i += vx as u16;
+                                /* i += vx */
+                                self.i += self.v[x as usize] as u16;
                                 self.pc += 2;
-
-                                        
                         }
                         _ => panic!("Unimplemented {:#X}:{:#X}", self.pc, opcode)
                 }
@@ -223,6 +239,6 @@ impl fmt::Debug for Cpu {
                         write!(f, "{:#X} ", *item);
                 }
                 write!(f, "\n");
-                write!(f, "i: {:#X}\n", self.i)
+                write!(f, "i: {:?}\n", self.i)
         }
 }
