@@ -107,7 +107,15 @@ impl Cpu {
                                 else {
                                         self.pc += 2;
                                 }
-                        }
+                        },
+                        0x4 => {
+                                if self.v[x as usize] != nn {
+                                        self.pc += 4
+                                }
+                                else {
+                                        self.pc += 2
+                                }
+                        },
                         0x6 => {
                                 /* vx = nn */
                                 self.v[x as usize] = nn;
@@ -181,9 +189,9 @@ impl Cpu {
                         },
                         0xD => {
                                 /* draw sprite */
-                                self.display.test_draw(self.i, ram, x, y, n, &mut self.v[0xF]);
-                                self.display.test_print_screen();
-
+                                self.display.test_draw(self.i, ram, self.v[x as usize], self.v[y as usize], n, &mut self.v[0xF]);
+                                //self.display.test_draw(self.i, ram, x, y, n, &mut self.v[0xF]);
+                                self.display.test_print_gfx();
                                 self.pc += 2;
 
                         },
@@ -222,12 +230,15 @@ impl Cpu {
                                         0x07 => {
                                                 self.v[x as usize] = self.delay_timer;
                                         },
-                                        0x0A => {
-
-                                        },
                                         0x15 => {
                                                 self.delay_timer = self.v[x as usize];
                                         },
+                                        0x18 => {
+                                                self.pc += 2;
+                                        }
+                                        0x0A => {
+                                                self.pc += 2;
+                                        }
                                         0x1E => {
                                                 let vx = self.v[x as usize];
                                                 self.i += vx as u16;
@@ -249,11 +260,14 @@ impl Cpu {
 
         }
 
+        pub fn draw_screen(&mut self) {
+                self.display.draw_screen();
+        }
+
         pub fn tick(&mut self) {
                 if self.delay_timer > 0 {
                         self.delay_timer -= 1;
                 }
-                self.delay_timer = 0;
         }
 }
 

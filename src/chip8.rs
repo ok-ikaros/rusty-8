@@ -29,4 +29,7 @@ impl Chip8 {
             self.cpu.execute_opcode(&mut self.ram);
             println!("cpu state: {:?}", self.cpu);
         }
+        pub fn draw_screen(&mut self) {
+            self.cpu.draw_screen();
+        }
 }

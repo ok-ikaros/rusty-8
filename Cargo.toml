@@ -3,4 +3,5 @@ name = "rusty-8"
 version = "0.1.0"
 authors = ["Leland Wu <leland.wu4@gmail.com>"]
 
-[dependencies]
+[dependencies.sdl]
+git = "https://github.com/brson/rust-sdl.git"
