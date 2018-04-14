@@ -14,10 +14,12 @@ pub struct Cpu {
         i: u16,
         stack: Vec<u16>, // TODO CHANGE TO VECTOR
         /* stack pointer */
-        sp: usize,
+        //sp: usize,
         prev_pc: u16,
         display: Display,
-        keypad: Keypad
+        keypad: Keypad,
+        delay_timer: u8
+
 }
 
 impl Cpu {
@@ -29,13 +31,15 @@ impl Cpu {
                         pc: PROG_START,
                         i: 0,
                         stack: Vec::<u16>::new(),
-                        sp: 0,
-                        prev_pc: 0
+                        //sp: 0,
+                        prev_pc: 0,
+                        delay_timer: 0
 
                 }
 
         }
         pub fn execute_opcode(&mut self, ram: &mut Ram) {
+                self.tick();
                 let first_byte = ram.read_byte(self.pc) as u16;
                 let second_byte= ram.read_byte(self.pc + 1) as u16;
 
@@ -44,7 +48,7 @@ impl Cpu {
                  * Use bitwise or to merge the two 
                  */
                 let opcode: u16 = (first_byte << 8) | second_byte;
-                println!("opcode: {:#X}: hi:{:#X} lo:{:#X}", opcode, first_byte, second_byte);
+                println!("opcode: {:#X}:{:#X}: hi:{:#X} lo:{:#X}", self.pc, opcode, first_byte, second_byte);
                 let nnn = opcode & 0x0FFF;
                 let nn = (opcode & 0x0FF) as u8;
 
@@ -166,6 +170,7 @@ impl Cpu {
                                                  
                                                 self.v[0xF] = vx & 0x1;
                                                 self.v[x as usize] >>= 1;
+                                                // self.v[y as usize] >>= 1;
 
                                         },
 
@@ -185,15 +190,25 @@ impl Cpu {
                         0xE => {
                                 match nn {
                                         0xA1 => {
-                                                /* if key() != vx */
+                                                /* if key() != vx, skip  */
                                                 let keycode = self.v[x as usize];
-                                                if self.keypad.key_is_pressed(keycode) {
-                                                        self.pc += 2
-                                                } else {
+                                                if !self.keypad.key_is_pressed(keycode) {
                                                         self.pc += 4
+                                                } else {
+                                                        self.pc += 2
                                                 }
  
                                         },
+                                        0x9E => {
+                                                /* if key() == vx, skip */
+                                                let keycode = self.v[x as usize];
+                                                if self.keypad.key_is_pressed(keycode) {
+                                                        self.pc += 4
+                                                } else {
+                                                        self.pc += 2
+                                                }
+
+                                        }
                                         _ => panic!("Unimplemented opcode {:#X}:{:#X}", self.pc, opcode)
                                 };
                         },
@@ -203,27 +218,55 @@ impl Cpu {
                                 self.pc += 2;
                         },
                         0xF => {
-                                let vx = self.v[x as usize];
-                                self.i += vx as u16;
-                                self.pc += 2;
+                                match nn {
+                                        0x07 => {
+                                                self.v[x as usize] = self.delay_timer;
+                                        },
+                                        0x0A => {
 
-                                        
+                                        },
+                                        0x15 => {
+                                                self.delay_timer = self.v[x as usize];
+                                        },
+                                        0x1E => {
+                                                let vx = self.v[x as usize];
+                                                self.i += vx as u16;
+                                        },
+                                        0x65 => {
+                                                for i in 0..x + 1 {
+                                                        self.v[i as usize] = ram.read_byte(self.i + i as u16)
+                                                }
+                                                self.i = x as u16 + 1;
+                                        }
+
+                                         _ => panic!("Unimplemented opcode {:#X}:{:#X}", self.pc, opcode)
+                                }
+                                self.pc += 2;     
                         }
                         _ => panic!("Unimplemented {:#X}:{:#X}", self.pc, opcode)
                 }
                 
 
         }
+
+        pub fn tick(&mut self) {
+                if self.delay_timer > 0 {
+                        self.delay_timer -= 1;
+                }
+                self.delay_timer = 0;
+        }
 }
 
 impl fmt::Debug for Cpu {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "pc: {:#X}\n", self.pc);
+                write!(f, "\npc: {:#X}\n", self.pc);
                 write!(f, "vx: ");
                 for item in self.v.iter() {
                         write!(f, "{:#X} ", *item);
                 }
                 write!(f, "\n");
-                write!(f, "i: {:#X}\n", self.i)
+                write!(f, "i: {:#X}\n", self.i);
+                write!(f, "\ndelay_timer: {:?}\n", self.delay_timer)
+
         }
 }

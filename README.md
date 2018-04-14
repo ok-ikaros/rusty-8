@@ -17,6 +17,12 @@ Use array splicing if you want to use i in array indexing.
 
 Chip-8 instructions are stored big-endian
 
+using u8 for the 4 bit values
+
+CHECK THE OPCODES CAREFULLY They say things like "carry flag is not set", which causes errors. I was stuck on this one bug for hours 
+
+
+
 https://stackoverflow.com/questions/40760168/how-to-handle-errors-from-the-readread-to-end-method
 
 
