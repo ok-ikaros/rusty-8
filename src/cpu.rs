@@ -18,7 +18,8 @@ pub struct Cpu {
         prev_pc: u16,
         display: Display,
         keypad: Keypad,
-        delay_timer: u8
+        delay_timer: u8,
+        sound_timer: u8
 
 }
 
@@ -33,7 +34,8 @@ impl Cpu {
                         stack: Vec::<u16>::new(),
                         //sp: 0,
                         prev_pc: 0,
-                        delay_timer: 0
+                        delay_timer: 0,
+                        sound_timer: 0
 
                 }
 
@@ -234,10 +236,10 @@ impl Cpu {
                                                 self.delay_timer = self.v[x as usize];
                                         },
                                         0x18 => {
-                                                self.pc += 2;
+                                                self.sound_timer = self.v[x as usize];
                                         }
                                         0x0A => {
-                                                self.pc += 2;
+                                               
                                         }
                                         0x1E => {
                                                 let vx = self.v[x as usize];

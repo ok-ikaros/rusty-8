@@ -32,7 +32,7 @@ fn main() {
                         match sdl::event::poll_event() {
                                 Event::Quit                  => break 'main,
                                 Event::None                  => break 'event,
-                                // Event::Key(key, state, _, _) => cpu.keypad.press(key, state),
+                                Event::Key(key, state, _, _) => chip8.keypad.press(key, state),
                                  _                           => {}
                         }                           
                 }
