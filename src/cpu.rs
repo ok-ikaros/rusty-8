@@ -1,7 +1,10 @@
 use ram::Ram;
+use sdl2::keyboard::Keycode;
 use std::fmt;
 use display::Display;
 use keypad::Keypad;
+use sdl2::VideoSubsystem;
+
 
 pub const PROG_START: u16 = 0x200;
 
@@ -24,9 +27,9 @@ pub struct Cpu {
 }
 
 impl Cpu {
-        pub fn new() -> Cpu {
+        pub fn new(vid_context: &VideoSubsystem) -> Cpu {
                 Cpu {
-                        display: Display::new(),
+                        display: Display::new(&vid_context),
                         keypad: Keypad::new(),
                         v: [0; 16],
                         pc: PROG_START,
@@ -60,9 +63,9 @@ impl Cpu {
                 let y = ((opcode & 0x00F0) >> 4) as u8;
                 println!("nnn = {:?}, nn = {:?}, n = {:?}, x = {:?}, y = {:?}", nnn, nn, n, x, y);
 
-                if self.prev_pc == self.pc {
-                        panic!("increment the pc");
-                }
+                // if self.prev_pc == self.pc {
+                //         panic!("increment the pc");
+                // }
 
                 self.prev_pc = self.pc;
                 match (opcode & 0xF000) >> 12 {
@@ -202,7 +205,7 @@ impl Cpu {
                                         0xA1 => {
                                                 /* if key() != vx, skip  */
                                                 let keycode = self.v[x as usize];
-                                                if !self.keypad.key_is_pressed(keycode) {
+                                                if !self.keypad.pressed(keycode as usize) {
                                                         self.pc += 4
                                                 } else {
                                                         self.pc += 2
@@ -212,7 +215,7 @@ impl Cpu {
                                         0x9E => {
                                                 /* if key() == vx, skip */
                                                 let keycode = self.v[x as usize];
-                                                if self.keypad.key_is_pressed(keycode) {
+                                                if self.keypad.pressed(keycode as usize) {
                                                         self.pc += 4
                                                 } else {
                                                         self.pc += 2
@@ -239,7 +242,7 @@ impl Cpu {
                                                 self.sound_timer = self.v[x as usize];
                                         }
                                         0x0A => {
-                                               
+                                                self.wait_keypress(x);
                                         }
                                         0x1E => {
                                                 let vx = self.v[x as usize];
@@ -260,6 +263,20 @@ impl Cpu {
                 }
                 
 
+        }
+
+        pub fn press(&mut self, key: Keycode, state: bool) {
+                self.keypad.press(key, state);
+        }
+
+        fn wait_keypress(&mut self, x: u8) {
+                for i in 0..16 {
+                        if self.keypad.pressed(i as usize) {
+                                self.v[x as usize] = i;
+                                break;
+                        }
+                }
+                self.pc -= 2;
         }
 
         pub fn draw_screen(&mut self) {

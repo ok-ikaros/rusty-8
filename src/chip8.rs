@@ -1,4 +1,6 @@
 use ram::Ram;
+use sdl2::VideoSubsystem;
+use sdl2::keyboard::Keycode;
 use cpu::Cpu;
 use cpu;
 
@@ -8,10 +10,10 @@ pub struct Chip8 {
 }
 
 impl Chip8 {
-        pub fn new() -> Chip8 {
+        pub fn new(vid_context: &VideoSubsystem) -> Chip8 {
                 Chip8 {
                         ram: Ram::new(),
-                        cpu: Cpu::new()
+                        cpu: Cpu::new(&vid_context)
                 }
         }
 
@@ -26,10 +28,15 @@ impl Chip8 {
         }
 
         pub fn execute_opcode(&mut self) {
-            self.cpu.execute_opcode(&mut self.ram);
-            println!("cpu state: {:?}", self.cpu);
+                self.cpu.execute_opcode(&mut self.ram);
+                println!("cpu state: {:?}", self.cpu);
+        }
+
+        pub fn press(&mut self, key: Keycode, state: bool) {
+                print!("hello");
+                self.cpu.press(key, state);
         }
         pub fn draw_screen(&mut self) {
-            self.cpu.draw_screen();
+                self.cpu.draw_screen();
         }
 }

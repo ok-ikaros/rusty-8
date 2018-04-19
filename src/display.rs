@@ -1,40 +1,45 @@
-use sdl::video;
-use sdl::Rect;
+use std::{thread, time};
+
+use sdl2::pixels::Color;
+use sdl2::video::Window;
+use sdl2::rect::Rect;
+use sdl2::render::Canvas;
+use sdl2::VideoSubsystem;
 
 use ram::Ram;
 
 const WIDTH: usize = 64;
-const HEIGHT: usize = 32;
+const HEIGHT: usize= 32;
 
 pub struct Display {
-        gfx: [[u8; WIDTH]; HEIGHT] ,
+        gfx: [[u8; WIDTH as usize]; HEIGHT as usize] ,
         draw_flag: bool,
-        screen: video::Surface
-
+        canvas: Canvas<Window>
 }
 
-static scale: isize = 20;
-
 impl Display {
-        pub fn new() -> Display {
+        pub fn new(video_subsystem: &VideoSubsystem) -> Display {
+                let window = video_subsystem.window("rchip-8", 640, 320).build().unwrap();
+                let mut canvas = window.into_canvas().present_vsync().build().unwrap();
+                // let window_size = (WIDTH as u32 * 15, HEIGHT as u32 * 15);
+                // canvas.set_scale(1.5 as f32, 1.5 as f32).unwrap();    
+                // canvas.window_mut().set_size(window_size.0, window_size.1).unwrap();
                 Display {
                         gfx: [[0; WIDTH]; HEIGHT],   
                         draw_flag: true,
-                        screen: video::set_video_mode(64*scale, 32*scale, 8,
-                                          &[video::SurfaceFlag::HWSurface],
-                                          &[video::VideoFlag::DoubleBuf]).unwrap()
-
+                        canvas
                 }
+
         }
 
         /* start reading from memory i, and draw that sprite to the gfx */
         pub fn test_draw(&mut self, i_reg: u16, ram: &mut Ram,  x: u8, y: u8, height: u8, vf: &mut u8) {
                 println!("drawing sprite at ({}, {})", x, y);
-                for y in 0..height {
-                        let mut byte = ram.read_byte(i_reg + y as u16);
+                for drawn_y in 0..height {
+                        let mut byte = ram.read_byte(i_reg + drawn_y as u16);
 
                         let mut x_coord = x as usize;
-                        let mut y_coord = y as usize;
+                        let mut y_coord = y as usize + drawn_y as usize;
                         
                         for _ in 0..8 {
                                 x_coord %= WIDTH;
@@ -70,17 +75,23 @@ impl Display {
 
         pub fn draw_screen(& mut self) {
                 if !self.draw_flag { return }
-                let mut pixel: u8;
-                let sc = scale as u16;
-                let pt = | p: usize| { (p as i16) * (scale as i16) };
                  for y in 0..32 {
                         for x in 0..64 {
-                                pixel = if self.gfx[y][x] != 0 { 255 } else { 0 };
-                                self.screen.fill_rect(Some(Rect { x: pt(x), y: pt(y), w: sc, h: sc}),
-                                video::RGB(pixel, pixel, pixel));
+                                if self.gfx[y][x] != 0 { 
+                                        self.canvas.set_draw_color(Color::RGB(255, 255, 255));
+                                } else { 
+                                        self.canvas.set_draw_color(Color::RGB(0, 0, 0));
+                                };
+                                let rect = Rect::new(x as i32 * 10, y as i32 * 10, 10, 10);
+                                self.canvas.fill_rect(rect).unwrap();
+                                
                         }
                 }
-                self.screen.flip();
+                self.canvas.present();
+                // let ten_millis = time::Duration::from_millis(50);
+                // let now = time::Instant::now();
+
+                // thread::sleep(ten_millis);
                 self.draw_flag = false;
 
         }
