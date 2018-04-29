@@ -33,7 +33,6 @@ impl Chip8 {
         }
 
         pub fn press(&mut self, key: Keycode, state: bool) {
-                print!("hello");
                 self.cpu.press(key, state);
         }
         pub fn draw_screen(&mut self) {

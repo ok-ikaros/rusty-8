@@ -4,6 +4,10 @@ use std::fmt;
 use display::Display;
 use keypad::Keypad;
 use sdl2::VideoSubsystem;
+use rand;
+use rand::distributions::{IndependentSample, Range};
+use std::time;
+use std::time::Duration;
 
 
 pub const PROG_START: u16 = 0x200;
@@ -22,7 +26,9 @@ pub struct Cpu {
         display: Display,
         keypad: Keypad,
         delay_timer: u8,
-        sound_timer: u8
+        delay_set: time::Instant,
+        sound_timer: u8,
+        rng: rand::ThreadRng
 
 }
 
@@ -38,13 +44,15 @@ impl Cpu {
                         //sp: 0,
                         prev_pc: 0,
                         delay_timer: 0,
-                        sound_timer: 0
+                        delay_set: time::Instant::now(),
+                        sound_timer: 0,
+                        rng: rand::thread_rng()
 
                 }
 
         }
         pub fn execute_opcode(&mut self, ram: &mut Ram) {
-                self.tick();
+                
                 let first_byte = ram.read_byte(self.pc) as u16;
                 let second_byte= ram.read_byte(self.pc + 1) as u16;
 
@@ -121,6 +129,14 @@ impl Cpu {
                                         self.pc += 2
                                 }
                         },
+                        0x5 => {
+                                if self.v[x as usize] == self.v[y as usize] {
+                                        self.pc += 4;
+                                }
+                                else {
+                                        self.pc += 2;
+                                }
+                        },
                         0x6 => {
                                 /* vx = nn */
                                 self.v[x as usize] = nn;
@@ -141,6 +157,9 @@ impl Cpu {
                                                 /* vx = vy */
                                                 self.v[x as usize] = self.v[y as usize];
 
+                                        },
+                                        1 => {
+                                                self.v[x as usize] |= self.v[y as usize];
                                         },
                                         2 => {
                                                 /* vx = vx & vy */
@@ -184,19 +203,60 @@ impl Cpu {
                                                 self.v[0xF] = vx & 0x1;
                                                 self.v[x as usize] >>= 1;
                                                 // self.v[y as usize] >>= 1;
+                                        },
+                                        7 => {
+                                                if vy > vx {
+                                                        self.v[0xF] = 1;
+                                                } else {
+                                                        self.v[0xF] = 0;
+                                                }
+                                                self.v[x as usize] = vy - vx;
 
                                         },
-
+                                        0xE => {
+                                                self.v[0xF] = self.v[x as usize] >> 7;
+                                                self.v[x as usize] <<= 1;
+                                        }
 
                                         _ => panic!("Unimplemented opcode {:#X}:{:#X}", self.pc, opcode)
                                 };
                                 self.pc += 2;
                         },
+                        0x9 => {
+                                if self.v[x as usize] != self.v[y as usize] {
+                                        self.pc += 4;
+                                } else {
+                                        self.pc += 2;
+                                }
+            
+                        },
+                        0xA => {
+                                /* i = nnn */
+                                self.i = nnn;
+                                self.pc += 2;
+                        },
+                        0xB => {
+                                self.v[x as usize] as u16 + nnn;
+
+                        },
+                        0xC => {
+                                let interval = Range::new(0, 255);
+                                let number = interval.ind_sample(&mut self.rng);
+                                self.v[x as usize] = number & nn;
+                                self.pc += 2;
+
+                        },
                         0xD => {
                                 /* draw sprite */
-                                self.display.test_draw(self.i, ram, self.v[x as usize], self.v[y as usize], n, &mut self.v[0xF]);
+                                let collision = self.display.test_draw(self.i, ram, self.v[x as usize], self.v[y as usize], n, &mut self.v[0xF]);
+                                if collision {
+                                    self.v[0xF] = 1;
+                                }
+                                else {
+                                    self.v[0xF] = 0;
+                                }
                                 //self.display.test_draw(self.i, ram, x, y, n, &mut self.v[0xF]);
-                                self.display.test_print_gfx();
+                               // self.display.test_print_gfx();
                                 self.pc += 2;
 
                         },
@@ -225,28 +285,45 @@ impl Cpu {
                                         _ => panic!("Unimplemented opcode {:#X}:{:#X}", self.pc, opcode)
                                 };
                         },
-                        0xA => {
-                                /* i = nnn */
-                                self.i = nnn;
-                                self.pc += 2;
-                        },
                         0xF => {
                                 match nn {
                                         0x07 => {
-                                                self.v[x as usize] = self.delay_timer;
+                                                self.v[x as usize] = self.get_delay();
+                                                //self.v[x as usize] = self.delay_timer;
                                         },
                                         0x15 => {
-                                                self.delay_timer = self.v[x as usize];
+                                                let vx = self.v[x as usize];
+                                                self.set_delay(vx);
+                                                //self.delay_timer = self.v[x as usize];
                                         },
                                         0x18 => {
                                                 self.sound_timer = self.v[x as usize];
                                         }
                                         0x0A => {
                                                 self.wait_keypress(x);
-                                        }
+                                        },
                                         0x1E => {
                                                 let vx = self.v[x as usize];
                                                 self.i += vx as u16;
+                                        },
+                                        0x29 => {
+                                                /* have to multiply by 5 because each sprite has 5 lines */
+                                                self.i = self.v[x as usize] as u16 * 5;
+                                        },
+                                        0x33 => {
+                                                let vx = self.v[x as usize];
+                                                ram.write_byte(self.i, vx / 100);
+                                                ram.write_byte(self.i + 1, (vx % 100) / 10);
+                                                ram.write_byte(self.i + 2, vx % 10);
+
+                                        },
+                                        0x55 => {
+                                                for index in 0..x + 1 {
+                                                        let value = self.v[x as usize];
+                                                        ram.write_byte(self.i + index as u16, value);
+                                                }
+                                                self.i += x as u16 + 1;
+                                                self.pc += 2;
                                         },
                                         0x65 => {
                                                 for i in 0..x + 1 {
@@ -265,6 +342,22 @@ impl Cpu {
 
         }
 
+        pub fn set_delay(&mut self, val: u8) {
+            self.delay_set = time::Instant::now();
+            self.delay_timer = val;
+        }
+
+        pub fn get_delay(&self) -> u8 {
+            let diff = time::Instant::now() - self.delay_set;
+            let ms = diff.get_millis();
+            /* These ticks are 60 hz */
+            let ticks = ms / 16;
+            if ticks >= self.delay_timer as u64 {
+                0
+            } else {
+                self.delay_timer - ticks as u8
+            }
+        }
         pub fn press(&mut self, key: Keycode, state: bool) {
                 self.keypad.press(key, state);
         }
@@ -290,15 +383,27 @@ impl Cpu {
         }
 }
 
+trait Milliseconds {
+    fn get_millis(&self) -> u64;
+}
+
+impl Milliseconds for Duration {
+    fn get_millis(&self) -> u64 {
+        let nanos = self.subsec_nanos() as u64;
+        let ms = (1000*1000*1000 * self.as_secs() + nanos) /(1000 * 1000);
+        ms
+    }
+}
+
 impl fmt::Debug for Cpu {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "\npc: {:#X}\n", self.pc);
-                write!(f, "vx: ");
+                write!(f, "\npc: {:#X}\n", self.pc)?;
+                write!(f, "vx: ")?;
                 for item in self.v.iter() {
-                        write!(f, "{:#X} ", *item);
+                        write!(f, "{:#X} ", *item)?;
                 }
-                write!(f, "\n");
-                write!(f, "i: {:#X}\n", self.i);
+                write!(f, "\n")?;
+                write!(f, "i: {:#X}\n", self.i)?;
                 write!(f, "\ndelay_timer: {:?}\n", self.delay_timer)
 
         }
