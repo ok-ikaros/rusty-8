@@ -34,7 +34,7 @@ impl Display {
 
         /* start reading from memory i, and draw that sprite to the gfx */
         pub fn test_draw(&mut self, i_reg: u16, ram: &mut Ram,  x: u8, y: u8, height: u8, vf: &mut u8) -> bool {
-                println!("drawing sprite at ({}, {})", x, y);
+                //println!("drawing sprite at ({}, {})", x, y);
                 let mut collision = false;
                 for drawn_y in 0..height {
                         let mut byte = ram.read_byte(i_reg + drawn_y as u16);
@@ -63,6 +63,7 @@ impl Display {
         }
 
         pub fn draw_screen(&mut self) {
+            self.canvas.clear();
                 if !self.draw_flag { return }
                 for y in 0..HEIGHT {
                         for x in 0..WIDTH {

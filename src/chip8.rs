@@ -29,7 +29,7 @@ impl Chip8 {
 
         pub fn execute_opcode(&mut self) {
                 self.cpu.execute_opcode(&mut self.ram);
-                println!("cpu state: {:?}", self.cpu);
+                //println!("cpu state: {:?}", self.cpu);
         }
 
         pub fn press(&mut self, key: Keycode, state: bool) {

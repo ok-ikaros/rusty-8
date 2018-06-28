@@ -61,7 +61,7 @@ impl Cpu {
                  * Use bitwise or to merge the two 
                  */
                 let opcode: u16 = (first_byte << 8) | second_byte;
-                println!("opcode: {:#X}:{:#X}: hi:{:#X} lo:{:#X}", self.pc, opcode, first_byte, second_byte);
+                //println!("opcode: {:#X}:{:#X}: hi:{:#X} lo:{:#X}", self.pc, opcode, first_byte, second_byte);
                 let nnn = opcode & 0x0FFF;
                 let nn = (opcode & 0x0FF) as u8;
 
@@ -69,7 +69,7 @@ impl Cpu {
                 let n = (opcode & 0x00F) as u8;
                 let x = ((opcode & 0x0F00) >> 8) as u8;
                 let y = ((opcode & 0x00F0) >> 4) as u8;
-                println!("nnn = {:?}, nn = {:?}, n = {:?}, x = {:?}, y = {:?}", nnn, nn, n, x, y);
+                //println!("nnn = {:?}, nn = {:?}, n = {:?}, x = {:?}, y = {:?}", nnn, nn, n, x, y);
 
                 // if self.prev_pc == self.pc {
                 //         panic!("increment the pc");
@@ -256,7 +256,7 @@ impl Cpu {
                                     self.v[0xF] = 0;
                                 }
                                 //self.display.test_draw(self.i, ram, x, y, n, &mut self.v[0xF]);
-                               // self.display.test_print_gfx();
+                                //self.display.test_print_gfx();
                                 self.pc += 2;
 
                         },
